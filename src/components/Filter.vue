@@ -1,7 +1,6 @@
 <script setup>
 import { ref, watch } from "vue";
 
-// Принимаем пропсы
 const props = defineProps({
   filters: Object,
   genres: Array,
@@ -9,7 +8,7 @@ const props = defineProps({
   years: Array
 });
 
-const emit = defineEmits(["update-filters"]);
+const emit = defineEmits(["apply-filters"]);
 
 // Локальная копия фильтров
 const localFilters = ref({
@@ -27,6 +26,21 @@ watch(localFilters, (newVal) => {
   emit("update-filters", newVal);
 }, { deep: true });
 
+const applyFilters = (filters) => {
+  loading.value = true;
+  fetchMovies(filters)
+      .then(data => {
+        movies.value = data.items;
+        totalPages.value = data.totalPages;
+      })
+      .catch(err => {
+        error.value = err.message;
+      })
+      .finally(() => {
+        loading.value = false;
+      });
+};
+
 // Сброс фильтров к значениям по умолчанию
 const resetFilters = () => {
   localFilters.value = {
@@ -37,6 +51,7 @@ const resetFilters = () => {
     ratingTo: null,
     sortBy: "RATING"
   };
+  applyFilters(); // Применяем сброс сразу
 };
 
 const error = ref(null)
@@ -58,7 +73,6 @@ console.log("Years:", props.years);
 </script>
 
 <template>
-  <div v-if="!genres.length" class="loading">Загрузка фильтров...</div>
   <div class="filter-container">
     <h2 class="filter-title">Фильтры</h2>
 
@@ -97,11 +111,7 @@ console.log("Years:", props.years);
       <label>Год:</label>
       <select v-model="localFilters.year">
         <option :value="null">Все годы</option>
-        <option
-            v-for="year in years"
-            :key="year"
-            :value="year"
-        >
+        <option v-for="year in props.years" :key="year" :value="year">
           {{ year }}
         </option>
       </select>
@@ -154,7 +164,7 @@ console.log("Years:", props.years);
 <style scoped>
 .filter-container {
   padding: 25px;
-  background-color: #1e1e1e;
+  background-color: #1c1b1b;
   color: #fff;
   border-left: 1px solid #333;
   height: 100%;

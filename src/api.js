@@ -4,29 +4,41 @@ const API_KEY = 'bd64e2f1-acf1-4b53-bfb3-c821974abdb3';
 const BASE_URL = 'https://kinopoiskapiunofficial.tech/api/v2.2';
 
 // Получение списка фильмов с фильтрами
-async function fetchMovies({ page = 1, order = 'RATING', type = 'FILM', ratingFrom = 0, ratingTo = 10, yearFrom = 2000, yearTo = 2025, genre = null, country = null }) {
+async function fetchMovies({
+                               page = 1,
+                               order = 'RATING',
+                               type = 'ALL',
+                               ratingFrom = 0,
+                               ratingTo = 10,
+                               yearFrom = 1000,
+                               yearTo = 3000,
+                               genre = null,
+                               country = null
+                           }) {
     try {
-        const url = `${BASE_URL}/films`;
+        const params = {
+            page,
+            order,
+            type,
+            ratingFrom,
+            ratingTo,
+            yearFrom,
+            yearTo
+        };
 
-        const response = await axios.get(url, {
+        // Добавляем жанр и страну, если они указаны
+        if (genre) params.genres = genre;
+        if (country) params.countries = country;
+
+        const response = await axios.get(`${BASE_URL}/films`, {
             headers: {
                 'X-API-KEY': API_KEY,
                 'Content-Type': 'application/json',
             },
-            params: {
-                page,
-                order,
-                type,
-                ratingFrom,
-                ratingTo,
-                yearFrom,
-                yearTo,
-                genres: genre,
-                countries: country
-            }
+            params
         });
 
-        return response.data; // Возвращаем полученные данные
+        return response.data;
     } catch (error) {
         throw new Error(`Error fetching movies: ${error.message}`);
     }
@@ -60,6 +72,8 @@ export async function fetchGenres() {
         throw new Error(`Error fetching genres: ${error.message}`);
     }
 }
+
+
 
 // Получение списка стран
 export async function fetchCountries() {

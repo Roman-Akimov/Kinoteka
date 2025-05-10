@@ -66,11 +66,11 @@ const onFilterChange = (newFilters) => {
   flex: 7.8;
   overflow-y: auto;
   padding: 20px;
-  background-color: #100f0f;
+  background-color: #0c0b0b;
 
   /* Стилизация скроллбара */
   scrollbar-width: thin;
-  scrollbar-color: #555 #1e1e1e;
+  scrollbar-color: #737272 #1e1e1e;
 }
 
 .main::-webkit-scrollbar {

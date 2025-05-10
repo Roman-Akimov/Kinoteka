@@ -108,7 +108,7 @@ const goToMovieDetail = (movieId) => {
 
 button {
   padding: 8px 16px;
-  background-color: #2e2e2e;
+  background-color: #2f2e2e;
   color: white;
   border: 1px solid #444;
   border-radius: 6px;
