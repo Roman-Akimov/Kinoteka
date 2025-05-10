@@ -39,12 +39,26 @@ const resetFilters = () => {
   };
 };
 
+const error = ref(null)
+
+const loadFilterData = async () => {
+  try {
+    genres.value = await fetchGenres()
+    countries.value = await fetchCountries()
+    error.value = null
+  } catch (err) {
+    error.value = 'Не удалось загрузить фильтры'
+    console.error(err)
+  }
+}
+
 console.log("Genres:", props.genres);
 console.log("Countries:", props.countries);
 console.log("Years:", props.years);
 </script>
 
 <template>
+  <div v-if="!genres.length" class="loading">Загрузка фильтров...</div>
   <div class="filter-container">
     <h2 class="filter-title">Фильтры</h2>
 
@@ -54,11 +68,11 @@ console.log("Years:", props.years);
       <select v-model="localFilters.genre">
         <option :value="null">Все жанры</option>
         <option
-            v-for="genre in genres"
-            :key="genre.id || genre.name"
-            :value="genre.name"
+            v-for="genre in props.genres"
+            :key="genre.id || genre.genre"
+            :value="genre.id || genre.genre"
         >
-          {{ genre.name }}
+          {{ genre.genre || genre.name }}
         </option>
       </select>
     </div>
@@ -69,11 +83,11 @@ console.log("Years:", props.years);
       <select v-model="localFilters.country">
         <option :value="null">Все страны</option>
         <option
-            v-for="country in countries"
-            :key="country.id || country.name"
-            :value="country.name"
+            v-for="country in props.countries"
+            :key="country.id || country.country"
+            :value="country.id || country.country"
         >
-          {{ country.name }}
+          {{ country.country || country.name }}
         </option>
       </select>
     </div>
@@ -186,6 +200,12 @@ select:focus {
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.loading {
+  color: #aaa;
+  text-align: center;
+  padding: 10px;
 }
 
 .rating-input {

@@ -1,15 +1,33 @@
 <script setup>
 import Head from "@/components/Head.vue"
 import Filter from "@/components/Filter.vue"
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
+import { fetchGenres, fetchCountries, generateYears } from '@/api.js'
 
 const filters = ref({})
+const genres = ref([])
+const countries = ref([])
+const years = ref(generateYears())
+
+// Загрузка данных фильтров
+const loadFilterData = async () => {
+  try {
+    genres.value = await fetchGenres()
+    countries.value = await fetchCountries()
+  } catch (error) {
+    console.error("Error loading filter data:", error)
+  }
+}
+
+onMounted(loadFilterData)
+
 const onFilterChange = (newFilters) => {
-  filters.value = { ...newFilters } // Обновляем фильтры
+  filters.value = { ...newFilters }
 }
 </script>
 
 <template>
+  <div class="body">
   <div class="app-kino">
     <Head />
     <div class="content">
@@ -17,13 +35,21 @@ const onFilterChange = (newFilters) => {
         <router-view :filters="filters" @update-filters="onFilterChange" />
       </div>
       <div class="filter">
-        <Filter :filters="filters" @update-filters="onFilterChange" />
+        <Filter
+            :filters="filters"
+            :genres="genres"
+            :countries="countries"
+            :years="years"
+            @update-filters="onFilterChange"
+        />
       </div>
     </div>
+  </div>
   </div>
 </template>
 
 <style scoped>
+
 .app-kino {
   display: flex;
   flex-direction: column;

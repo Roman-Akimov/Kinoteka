@@ -90,6 +90,10 @@ const goToMovieDetail = (movieId) => {
   color: white;
 }
 
+.title{
+  margin: 20px;
+}
+
 .pagination {
   margin: 20px 0;
   display: flex;

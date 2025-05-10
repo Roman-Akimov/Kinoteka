@@ -1,18 +1,79 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import { useRoute } from "vue-router";
-import { fetchMovieDetails } from "@/api.js";
+import {ref, onMounted} from "vue";
+import {useRoute} from "vue-router";
+import {fetchMovieDetails, fetchMovieVideos, fetchMovieReviews, fetchMovieStaff, fetchMovieFrames} from "@/api.js"; // Добавляем необходимые функции
 
 const route = useRoute();
-const movieId = route.params.id;
+const movieId = Number(route.params.id); //  Приведение к числу
 const movie = ref(null);
 const isLoading = ref(true);
 const error = ref(null);
+const activeTab = ref('description'); // Для табов
+const frames = ref([]); // Для кадров из фильма
+const trailers = ref([]); // Для трейлеров
+const reviews = ref([]); // Для рецензий
+const staff = ref({}); // Для создателей
 
 const loadMovieDetails = async () => {
   try {
+    // В MovieDetail.vue или прямо в loadMovieDetails:
+    reviews.value = (await fetchMovieReviews(movieId)).filter(r => r.reviewText && r.reviewText.trim().length > 0);
+
     const data = await fetchMovieDetails(movieId);
     movie.value = data;
+
+    // Загрузка трейлеров
+    trailers.value = await fetchMovieVideos(movieId);
+
+    // Загрузка рецензий
+    reviews.value = await fetchMovieReviews(movieId);
+
+    // Загрузка создателей (съёмочная группа)
+    const staffList = await fetchMovieStaff(movieId);
+    // Группируем съёмочную команду по профессиям
+
+
+    const rawStaff = await fetchMovieStaff(movieId);
+    if (!Array.isArray(rawStaff)) {
+      console.error("Staff data is not an array");
+      staff.value = { director: "Ошибка", producers: [] };
+      return;
+    }
+
+    const director = rawStaff.find(p => p.professionKey === "DIRECTOR");
+    const producers = rawStaff.filter(p => p.professionKey === "PRODUCER");
+
+    staff.value = {
+      director: director?.nameRu || director?.nameEn || "Неизвестно",
+      producers: producers.map(p => p.nameRu || p.nameEn).filter(Boolean)
+    };
+
+
+    staff.value = {
+      director: staffList
+          .filter(p => p.professionKey === 'DIRECTOR')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal)
+          .join(', '),
+      producers: staffList
+          .filter(p => p.professionKey === 'PRODUCER')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal),
+      writers: staffList
+          .filter(p => p.professionKey === 'WRITER')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal),
+      composers: staffList
+          .filter(p => p.professionKey === 'COMPOSER')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal),
+      operators: staffList
+          .filter(p => p.professionKey === 'OPERATOR')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal),
+      editors: staffList
+          .filter(p => p.professionKey === 'EDITOR')
+          .map(p => p.nameRu || p.nameEn || p.nameOriginal),
+    };
+    // Загрузка кадров (если есть)
+    if (data.filmId) {
+      frames.value = await fetchMovieFrames(data.filmId);
+    }
   } catch (err) {
     error.value = err.message;
     console.error("Error loading movie details:", err);
@@ -26,6 +87,11 @@ const formatRating = (rating) => {
   return Number(rating).toFixed(1);
 };
 
+const formatActors = (actors) => {
+  if (!actors) return [];
+  return actors.map(actor => actor.name || actor.nameRu || actor.nameEn).filter(Boolean);
+};
+
 onMounted(loadMovieDetails);
 </script>
 
@@ -33,122 +99,462 @@ onMounted(loadMovieDetails);
   <div v-if="isLoading" class="loading">Загружается...</div>
   <div v-else-if="error" class="error">Ошибка: {{ error }}</div>
   <div v-else class="movie-detail">
-    <h1>{{ movie.nameRu || movie.nameEn || 'Без названия' }}</h1>
-    <img v-if="movie.posterUrl" :src="movie.posterUrl" :alt="movie.nameRu || movie.nameEn" class="poster" />
-
-    <p v-if="movie.description" class="description">{{ movie.description }}</p>
-
-    <div class="details">
-      <div v-if="movie.year"><strong>Год выпуска:</strong> {{ movie.year }}</div>
-
-      <!-- Отображение рейтинга -->
-      <div>
-        <strong>Рейтинг:</strong>
-        <span v-if="movie.ratingKinopoisk">
-          Кинопоиск: {{ formatRating(movie.ratingKinopoisk) }}
-        </span>
-        <span v-if="movie.ratingImdb">
-          <span v-if="movie.ratingKinopoisk">, </span>
-          IMDb: {{ formatRating(movie.ratingImdb) }}
-        </span>
-        <span v-if="!movie.ratingKinopoisk && !movie.ratingImdb && movie.rating">
-          {{ formatRating(movie.rating) }}
-        </span>
-        <span v-if="!movie.ratingKinopoisk && !movie.ratingImdb && !movie.rating">
-          Не указан
-        </span>
-      </div>
-
-      <div v-if="movie.genres?.length">
-        <strong>Жанры:</strong>
-        {{ movie.genres.map(genre => genre.name || genre.genre || 'Неизвестно').join(', ') }}
-      </div>
-
-      <div v-if="movie.countries?.length">
-        <strong>Страны:</strong>
-        {{ movie.countries.map(country => country.name || country.country || 'Неизвестно').join(', ') }}
-      </div>
-
-      <div v-if="movie.director"><strong>Режиссер:</strong> {{ movie.director }}</div>
-
-      <div v-if="movie.actors?.length">
-        <strong>Актеры:</strong>
-        {{ movie.actors.join(', ') }}
+    <!-- Заголовок и постер -->
+    <div class="movie-header">
+      <img v-if="movie.posterUrl" :src="movie.posterUrl" :alt="movie.nameRu || movie.nameEn" class="poster"/>
+      <div class="movie-header-info">
+        <h1>{{ movie.nameRu || movie.nameEn || movie.nameOriginal || 'Без названия' }}</h1>
+        <div v-if="movie.year || movie.filmLength" class="movie-meta">
+          <span v-if="movie.year">{{ movie.year }}</span>
+          <span v-if="movie.filmLength"> • {{ movie.filmLength }} мин.</span>
+          <span v-if="movie.ageRating"> • {{ movie.ageRating }}+</span>
+        </div>
+        <div class="rating-badge" v-if="movie.ratingKinopoisk || movie.ratingImdb">
+          <span v-if="movie.ratingKinopoisk" class="kp-rating">
+            КП: {{ formatRating(movie.ratingKinopoisk) }}
+          </span>
+          <span v-if="movie.ratingImdb" class="imdb-rating">
+            IMDb: {{ formatRating(movie.ratingImdb) }}
+          </span>
+        </div>
       </div>
     </div>
 
-    <div v-if="movie.trailers?.length" class="trailers">
-      <h2>Трейлеры</h2>
-      <div v-for="(trailer, index) in movie.trailers" :key="index">
-        <iframe
-            :src="trailer.url"
-            width="560"
-            height="315"
-            frameborder="0"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowfullscreen
-        ></iframe>
-      </div>
+    <!-- Навигационные табы -->
+    <div class="tabs">
+      <button
+          @click="activeTab = 'description'"
+          :class="{ active: activeTab === 'description' }"
+      >
+        Описание
+      </button>
+      <button
+          @click="activeTab = 'crew'"
+          :class="{ active: activeTab === 'crew' }"
+      >
+        Создатели
+      </button>
+      <button
+          @click="activeTab = 'media'"
+          :class="{ active: activeTab === 'media' }"
+      >
+        Медиа
+      </button>
+      <button
+          @click="activeTab = 'reviews'"
+          :class="{ active: activeTab === 'reviews' }"
+      >
+        Рецензии
+      </button>
     </div>
 
-    <div v-if="movie.reviews?.length" class="reviews">
-      <h2>Рецензии</h2>
-      <div v-for="(review, index) in movie.reviews" :key="index" class="review">
-        <p v-if="review.author"><strong>{{ review.author }}:</strong></p>
-        <p v-if="review.text">{{ review.text }}</p>
+    <!-- Контент табов -->
+    <div class="tab-content">
+      <!-- Описание фильма -->
+      <div v-show="activeTab === 'description'" class="description-section">
+        <div class="description-block">
+          <h2>Описание</h2>
+          <p v-if="movie.description">{{ movie.description }}</p>
+          <p v-else>Описание отсутствует</p>
+        </div>
+
+        <div class="details-block">
+          <h2>Детали</h2>
+          <div class="details-grid">
+            <div v-if="movie.genres?.length" class="detail-item">
+              <strong>Жанры:</strong>
+              <div class="genres-list">
+                <span v-for="genre in movie.genres" :key="genre.id || genre.genre" class="genre-tag">
+                  {{ genre.genre || genre.name }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="movie.countries?.length" class="detail-item">
+              <strong>Страны:</strong>
+              <div class="countries-list">
+                <span v-for="country in movie.countries" :key="country.id || country.country" class="country-tag">
+                  {{ country.country || country.name }}
+                </span>
+              </div>
+            </div>
+
+            <div v-if="movie.year" class="detail-item">
+              <strong>Год выпуска:</strong>
+              <span>{{ movie.year }}</span>
+            </div>
+
+            <div v-if="movie.premiereRu" class="detail-item">
+              <strong>Премьера в РФ:</strong>
+              <span>{{ movie.premiereRu }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Создатели -->
+      <div v-show="activeTab === 'crew'" class="crew-section">
+        <div class="crew-grid">
+          <div v-if="staff.director" class="crew-item">
+            <h3>Режиссёр</h3>
+            <p>{{ staff.director }}</p>
+          </div>
+
+          <div v-if="staff.producers?.length" class="crew-item">
+            <h3>Продюсеры</h3>
+            <p>{{ staff.producers.join(', ') }}</p>
+          </div>
+
+          <div v-if="staff.writers?.length" class="crew-item">
+            <h3>Сценаристы</h3>
+            <p>{{ staff.writers.join(', ') }}</p>
+          </div>
+
+          <div v-if="staff.composers?.length" class="crew-item">
+            <h3>Композиторы</h3>
+            <p>{{ staff.composers.join(', ') }}</p>
+          </div>
+
+          <div v-if="staff.operators?.length" class="crew-item">
+            <h3>Операторы</h3>
+            <p>{{ staff.operators.join(', ') }}</p>
+          </div>
+
+          <div v-if="staff.editors?.length" class="crew-item">
+            <h3>Монтажёры</h3>
+            <p>{{ staff.editors.join(', ') }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Медиа -->
+      <div v-show="activeTab === 'media'" class="media-section">
+        <div v-if="trailers.length" class="trailers-block">
+          <h2>Трейлеры и тизеры</h2>
+          <div class="trailers-grid">
+            <div v-for="trailer in trailers" :key="trailer.url" class="trailer-item">
+              <div v-if="trailer.site === 'YOUTUBE'" class="video-container">
+                <iframe
+                    v-if="trailer.embedUrl"
+                    :src="trailer.embedUrl"
+                    frameborder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                ></iframe>
+              </div>
+              <div v-else class="video-link">
+                <a :href="trailer.url" target="_blank" rel="noopener noreferrer">
+                  Смотреть на {{ trailer.site }} ({{ trailer.name }})
+                </a>
+              </div>
+              <p v-if="trailer.name" class="trailer-name">{{ trailer.name }}</p>
+            </div>
+          </div>
+        </div>
+
+        <div v-if="frames.length" class="frames-block">
+          <h2>Кадры из фильма</h2>
+          <div class="frames-grid">
+            <img
+                v-for="(frame, index) in frames"
+                :key="index"
+                :src="frame.imageUrl"
+                :alt="'Кадр из фильма ' + (movie.nameRu || movie.nameEn)"
+                class="frame-image"
+            />
+          </div>
+        </div>
+      </div>
+
+      <!-- Рецензии -->
+      <div v-show="activeTab === 'reviews'" class="reviews-section">
+        <div v-if="reviews.length" class="reviews-list">
+          <h2>Рецензии</h2>
+          <div v-for="(review, index) in reviews" :key="index" class="review-item">
+            <div class="review-header">
+              <h3 v-if="review.author">{{ review.author }}</h3>
+              <div v-if="review.date" class="review-date">{{ review.date }}</div>
+              <div v-if="review.rating" class="review-rating">
+                Оценка: {{ review.rating }}
+              </div>
+            </div>
+            <div class="review-content">
+              <p>{{ review.reviewText || 'Рецензия отсутствует.' }}</p>
+
+            </div>
+          </div>
+        </div>
+        <div v-else><p>Рецензии отсутствуют.</p></div>
       </div>
     </div>
   </div>
 </template>
-
 <style scoped>
 .movie-detail {
-  display: flex;
-  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
   padding: 20px;
   background-color: #121212;
   color: #fff;
 }
 
-.poster {
-  max-width: 100%;
-  max-height: 400px;
-  object-fit: contain;
-  margin-bottom: 20px;
-}
-
-.description {
-  font-size: 1.2rem;
-  margin-bottom: 20px;
-}
-
-.details {
-  font-size: 1rem;
-  margin-bottom: 20px;
-}
-
-.details div {
-  margin-bottom: 10px;
-}
-
-.trailers {
+.movie-header {
+  display: flex;
+  gap: 30px;
   margin-bottom: 30px;
 }
 
-.reviews {
-  margin-top: 20px;
+.poster {
+  width: 300px;
+  height: 450px;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
-.review {
+.movie-header-info {
+  flex: 1;
+}
+
+.movie-header h1 {
+  font-size: 2.2rem;
+  margin-bottom: 10px;
+}
+
+.movie-meta {
+  color: #aaa;
   margin-bottom: 15px;
-  padding: 10px;
+  font-size: 1.1rem;
+}
+
+.rating-badge {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.kp-rating, .imdb-rating {
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+.kp-rating {
+  background-color: #ff9e00;
+  color: #000;
+}
+
+.imdb-rating {
+  background-color: #f5c518;
+  color: #000;
+}
+
+.tabs {
+  display: flex;
+  border-bottom: 1px solid #333;
+  margin-bottom: 20px;
+}
+
+.tabs button {
+  padding: 10px 20px;
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 1rem;
+  cursor: pointer;
+  position: relative;
+}
+
+.tabs button.active {
+  color: #fff;
+  font-weight: bold;
+}
+
+.tabs button.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background-color: #ff9e00;
+}
+
+.description-block,
+.details-block,
+.crew-grid,
+.trailers-block,
+.frames-block,
+.reviews-list {
+  margin-bottom: 40px;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.detail-item {
+  margin-bottom: 15px;
+}
+
+.genres-list,
+.countries-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 5px;
+}
+
+.genre-tag,
+.country-tag {
+  background-color: #2a2a2a;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.9rem;
+}
+
+.crew-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.actors-list {
+  grid-column: 1 / -1;
+}
+
+.actors-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.actor-item {
+  padding: 8px;
   background-color: #1e1e1e;
-  border-radius: 5px;
+  border-radius: 4px;
+}
+
+.trailers-grid,
+.frames-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.trailer-item iframe {
+  width: 100%;
+  height: 200px;
+  border-radius: 6px;
+}
+
+.trailer-name {
+  margin-top: 8px;
+  color: #aaa;
+}
+
+.frame-image {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.frame-image:hover {
+  transform: scale(1.03);
+}
+
+.review-item {
+  background-color: #1e1e1e;
+  padding: 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.review-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.review-date {
+  color: #aaa;
+}
+
+.review-rating {
+  font-weight: bold;
+  color: #ff9e00;
+}
+
+.review-title {
+  font-weight: bold;
+  margin-bottom: 10px;
 }
 
 .loading, .error {
-  padding: 20px;
+  padding: 40px;
   text-align: center;
   font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+  .movie-header {
+    flex-direction: column;
+  }
+
+  .poster {
+    width: 100%;
+    height: auto;
+    max-height: 500px;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%; /* 16:9 соотношение */
+  height: 0;
+  overflow: hidden;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 6px;
+}
+
+.video-link {
+  padding: 15px;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.video-link a {
+  color: #ff9e00;
+  text-decoration: none;
+}
+
+.video-link a:hover {
+  text-decoration: underline;
+}
+
+.trailer-name {
+  margin-top: 8px;
+  color: #aaa;
+  text-align: center;
 }
 </style>
