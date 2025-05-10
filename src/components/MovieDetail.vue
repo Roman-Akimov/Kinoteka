@@ -1,8 +1,16 @@
 <script setup>
-import {ref, onMounted} from "vue";
-import {useRoute} from "vue-router";
-import {fetchMovieDetails, fetchMovieVideos, fetchMovieReviews, fetchMovieStaff, fetchMovieFrames} from "@/api.js"; // Добавляем необходимые функции
+import { ref, onMounted } from "vue";
+import { useRoute } from "vue-router";
+import {
+  fetchMovieDetails,
+  fetchMovieVideos,
+  fetchMovieReviews,
+  fetchMovieStaff,
+  fetchMovieActors,
+  fetchMovieFrames
+} from "@/api.js";
 
+const actors = ref([]);
 const route = useRoute();
 const movieId = Number(route.params.id); //  Приведение к числу
 const movie = ref(null);
@@ -16,7 +24,6 @@ const staff = ref({}); // Для создателей
 
 const loadMovieDetails = async () => {
   try {
-    // В MovieDetail.vue или прямо в loadMovieDetails:
     reviews.value = (await fetchMovieReviews(movieId)).filter(r => r.reviewText && r.reviewText.trim().length > 0);
 
     const data = await fetchMovieDetails(movieId);
@@ -25,14 +32,15 @@ const loadMovieDetails = async () => {
     // Загрузка трейлеров
     trailers.value = await fetchMovieVideos(movieId);
 
+    // Загрузка актерского состава
+    actors.value = await fetchMovieActors(movieId);
+
     // Загрузка рецензий
     reviews.value = await fetchMovieReviews(movieId);
 
     // Загрузка создателей (съёмочная группа)
     const staffList = await fetchMovieStaff(movieId);
     // Группируем съёмочную команду по профессиям
-
-
     const rawStaff = await fetchMovieStaff(movieId);
     if (!Array.isArray(rawStaff)) {
       console.error("Staff data is not an array");
@@ -70,7 +78,6 @@ const loadMovieDetails = async () => {
           .filter(p => p.professionKey === 'EDITOR')
           .map(p => p.nameRu || p.nameEn || p.nameOriginal),
     };
-    // Загрузка кадров (если есть)
     if (data.filmId) {
       frames.value = await fetchMovieFrames(data.filmId);
     }
@@ -195,6 +202,7 @@ onMounted(loadMovieDetails);
       <!-- Создатели -->
       <div v-show="activeTab === 'crew'" class="crew-section">
         <div class="crew-grid">
+          <!-- Существующие создатели... -->
           <div v-if="staff.director" class="crew-item">
             <h3>Режиссёр</h3>
             <p>{{ staff.director }}</p>
@@ -223,6 +231,19 @@ onMounted(loadMovieDetails);
           <div v-if="staff.editors?.length" class="crew-item">
             <h3>Монтажёры</h3>
             <p>{{ staff.editors.join(', ') }}</p>
+          </div>
+          <div v-if="actors?.length" class="crew-item actors-list">
+            <h3>Актерский состав</h3>
+            <div class="actors-grid">
+              <div v-for="actor in actors" :key="actor.staffId" class="actor-item">
+                <p class="actor-name">
+                  {{ actor.nameRu || actor.nameEn || actor.nameOriginal }}
+                </p>
+                <p v-if="actor.description" class="actor-role">
+                  ({{ actor.description }})
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -293,23 +314,26 @@ onMounted(loadMovieDetails);
 .movie-detail {
   max-width: 1200px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 32px;
   background-color: #121212;
   color: #fff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  line-height: 1.6;
 }
 
 .movie-header {
   display: flex;
   gap: 30px;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
+  align-items: flex-start;
 }
 
 .poster {
   width: 300px;
   height: 450px;
   object-fit: cover;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
 }
 
 .movie-header-info {
@@ -317,26 +341,27 @@ onMounted(loadMovieDetails);
 }
 
 .movie-header h1 {
-  font-size: 2.2rem;
-  margin-bottom: 10px;
+  font-size: 2.5rem;
+  margin-bottom: 12px;
 }
 
 .movie-meta {
   color: #aaa;
-  margin-bottom: 15px;
+  margin-bottom: 18px;
   font-size: 1.1rem;
 }
 
 .rating-badge {
   display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+  gap: 20px;
+  margin-bottom: 25px;
 }
 
 .kp-rating, .imdb-rating {
-  padding: 5px 10px;
-  border-radius: 4px;
-  font-weight: bold;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 1rem;
 }
 
 .kp-rating {
@@ -352,17 +377,22 @@ onMounted(loadMovieDetails);
 .tabs {
   display: flex;
   border-bottom: 1px solid #333;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
 }
 
 .tabs button {
-  padding: 10px 20px;
+  padding: 12px 20px;
   background: none;
   border: none;
   color: #aaa;
   font-size: 1rem;
   cursor: pointer;
   position: relative;
+  transition: color 0.2s;
+}
+
+.tabs button:hover {
+  color: #fff;
 }
 
 .tabs button.active {
@@ -373,11 +403,12 @@ onMounted(loadMovieDetails);
 .tabs button.active::after {
   content: '';
   position: absolute;
-  bottom: -1px;
+  bottom: -2px;
   left: 0;
   right: 0;
   height: 3px;
   background-color: #ff9e00;
+  border-radius: 2px;
 }
 
 .description-block,
@@ -386,39 +417,39 @@ onMounted(loadMovieDetails);
 .trailers-block,
 .frames-block,
 .reviews-list {
-  margin-bottom: 40px;
+  margin-bottom: 48px;
 }
 
 .details-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  gap: 24px;
 }
 
 .detail-item {
-  margin-bottom: 15px;
+  margin-bottom: 10px;
 }
 
 .genres-list,
 .countries-list {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 5px;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .genre-tag,
 .country-tag {
   background-color: #2a2a2a;
-  padding: 4px 10px;
-  border-radius: 12px;
+  padding: 5px 12px;
+  border-radius: 16px;
   font-size: 0.9rem;
 }
 
 .crew-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 20px;
+  gap: 24px;
 }
 
 .actors-list {
@@ -428,59 +459,75 @@ onMounted(loadMovieDetails);
 .actors-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-  margin-top: 10px;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 .actor-item {
-  padding: 8px;
+  padding: 12px;
   background-color: #1e1e1e;
-  border-radius: 4px;
+  border-radius: 6px;
+  transition: background-color 0.2s;
+}
+
+.actor-item:hover {
+  background-color: #252525;
+}
+
+.actor-name {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.actor-role {
+  color: #999;
+  font-size: 0.9em;
 }
 
 .trailers-grid,
 .frames-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
-  margin-top: 15px;
+  gap: 24px;
+  margin-top: 16px;
 }
 
 .trailer-item iframe {
   width: 100%;
   height: 200px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 .trailer-name {
-  margin-top: 8px;
+  margin-top: 10px;
   color: #aaa;
+  text-align: center;
 }
 
 .frame-image {
   width: 100%;
   height: 200px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: transform 0.3s ease;
 }
 
 .frame-image:hover {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .review-item {
   background-color: #1e1e1e;
-  padding: 20px;
-  border-radius: 8px;
-  margin-bottom: 20px;
+  padding: 24px;
+  border-radius: 10px;
+  margin-bottom: 24px;
 }
 
 .review-header {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   flex-wrap: wrap;
 }
 
@@ -495,13 +542,52 @@ onMounted(loadMovieDetails);
 
 .review-title {
   font-weight: bold;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .loading, .error {
   padding: 40px;
   text-align: center;
-  font-size: 1.2rem;
+  font-size: 1.25rem;
+  color: #ccc;
+}
+
+.video-container {
+  position: relative;
+  padding-bottom: 56.25%;
+  height: 0;
+  overflow: hidden;
+}
+
+.video-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+}
+
+.video-link {
+  padding: 16px;
+  background-color: #2a2a2a;
+  border-radius: 6px;
+  text-align: center;
+  transition: background-color 0.2s;
+}
+
+.video-link:hover {
+  background-color: #333;
+}
+
+.video-link a {
+  color: #ff9e00;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.video-link a:hover {
+  text-decoration: underline;
 }
 
 @media (max-width: 768px) {
@@ -518,43 +604,5 @@ onMounted(loadMovieDetails);
   .details-grid {
     grid-template-columns: 1fr;
   }
-}
-
-.video-container {
-  position: relative;
-  padding-bottom: 56.25%; /* 16:9 соотношение */
-  height: 0;
-  overflow: hidden;
-}
-
-.video-container iframe {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  border-radius: 6px;
-}
-
-.video-link {
-  padding: 15px;
-  background-color: #2a2a2a;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.video-link a {
-  color: #ff9e00;
-  text-decoration: none;
-}
-
-.video-link a:hover {
-  text-decoration: underline;
-}
-
-.trailer-name {
-  margin-top: 8px;
-  color: #aaa;
-  text-align: center;
 }
 </style>

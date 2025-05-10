@@ -88,66 +88,86 @@ const goToMovieDetail = (movieId) => {
 <style scoped>
 .main-container {
   color: white;
+  padding: 20px;
+  font-family: 'Segoe UI', sans-serif;
 }
 
-.title{
-  margin: 20px;
+.title {
+  margin: 10px;
+  font-size: 3rem;
+  font-weight: bold;
+  color: #fff;
 }
 
 .pagination {
-  margin: 20px 0;
+  margin: 30px 0 20px;
   display: flex;
   justify-content: center;
-  gap: 10px;
+  gap: 12px;
 }
 
 button {
-  padding: 6px 12px;
+  padding: 8px 16px;
   background-color: #2e2e2e;
   color: white;
-  border: none;
-  border-radius: 4px;
+  border: 1px solid #444;
+  border-radius: 6px;
   cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s;
+  font-family: inherit;
+  font-size: 14px;
+}
+
+button:hover {
+  background-color: #444;
+  transform: scale(1.05);
 }
 
 .movies-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 24px;
   margin-top: 20px;
 }
 
 .movie-card {
   background-color: #1c1c1c;
-  border-radius: 8px;
-  padding: 10px;
+  border-radius: 10px;
+  padding: 12px;
   text-align: center;
-  transition: transform 0.2s;
-  cursor: pointer; /* Указываем, что элемент кликабельный */
+  transition: transform 0.3s, box-shadow 0.3s;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-family: inherit;
 }
 
 .movie-card:hover {
-  transform: scale(1.03);
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
 }
 
 .poster {
   width: 100%;
-  height: auto;
-  border-radius: 4px;
+  height: 320px;
+  object-fit: cover;
+  border-radius: 6px;
 }
 
 .movie-info {
-  margin-top: 10px;
+  margin-top: 12px;
 }
 
 .movie-title {
   font-weight: bold;
-  margin-bottom: 5px;
+  font-size: 1.1rem;
+  margin-bottom: 6px;
+  color: #fff;
 }
 
 .movie-year,
 .movie-rating {
-  font-size: 14px;
-  color: #ccc;
+  font-size: 0.9rem;
+  color: #aaa;
 }
 </style>
+

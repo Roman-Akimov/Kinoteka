@@ -27,7 +27,7 @@
 }
 
 .logo {
-  max-height: 120px;
+  max-height: 110px;
   object-fit: contain;
 }
 </style>

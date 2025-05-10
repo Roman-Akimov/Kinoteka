@@ -103,7 +103,7 @@ export async function fetchMovieReviews(movieId) {
                 'X-API-KEY': API_KEY
             },
             params: {
-                page: 1 // Можно добавить пагинацию при необходимости
+                page: 1
             }
         });
         return response.data.items; // список рецензий
@@ -112,6 +112,30 @@ export async function fetchMovieReviews(movieId) {
     }
 }
 
+export async function fetchMovieActors(movieId) {
+    try {
+        const response = await axios.get(`https://kinopoiskapiunofficial.tech/api/v1/staff`, {
+            headers: {
+                'X-API-KEY': API_KEY
+            },
+            params: {
+                filmId: movieId
+            }
+        });
+
+        // Фильтруем только актеров
+        const actors = response.data.filter(person =>
+            person.professionKey === 'ACTOR' ||
+            person.profession?.toLowerCase().includes('actor') ||
+            person.profession?.toLowerCase().includes('актер')
+        );
+
+        return actors;
+    } catch (error) {
+        console.error('Error fetching actors:', error);
+        return [];
+    }
+}
 export async function fetchMovieVideos(movieId) {
     try {
         const response = await axios.get(`${BASE_URL}/films/${movieId}/videos`, {

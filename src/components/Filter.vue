@@ -153,86 +153,110 @@ console.log("Years:", props.years);
 
 <style scoped>
 .filter-container {
-  padding: 20px;
+  padding: 25px;
   background-color: #1e1e1e;
   color: #fff;
   border-left: 1px solid #333;
   height: 100%;
   box-sizing: border-box;
   overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #444 #1e1e1e;
+}
+
+/* Webkit scrollbar (Chrome, Edge, Safari) */
+.filter-container::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filter-container::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.filter-container::-webkit-scrollbar-thumb {
+  background-color: #444;
+  border-radius: 4px;
 }
 
 .filter-title {
   margin-top: 0;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 1.6rem;
+  font-weight: bold;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
 }
 
 .filter-group {
-  margin-bottom: 20px;
+  margin-bottom: 24px;
 }
 
 label {
   display: block;
-  margin-bottom: 8px;
-  font-weight: 500;
+  margin-bottom: 10px;
+  font-weight: 600;
   color: #ddd;
+  font-size: 0.95rem;
 }
 
 select {
   width: 100%;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 10px 14px;
+  border-radius: 8px;
   border: 1px solid #444;
   background-color: #2a2a2a;
   color: #fff;
-  font-size: 14px;
-  transition: border-color 0.3s;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
 select:focus {
-  border-color: #007bff;
+  border-color: #ff9e00;
   outline: none;
+  background-color: #2f2f2f;
 }
 
 .rating-range {
   display: flex;
   align-items: center;
-  gap: 10px;
-}
-
-.loading {
-  color: #aaa;
-  text-align: center;
-  padding: 10px;
+  gap: 12px;
 }
 
 .rating-input {
   flex: 1;
-  padding: 10px;
-  border-radius: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
   border: 1px solid #444;
   background-color: #2a2a2a;
   color: #fff;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease;
+}
+
+.rating-input:focus {
+  border-color: #ff9e00;
+  outline: none;
 }
 
 .rating-separator {
   color: #777;
+  font-size: 1rem;
 }
 
 .filter-actions {
-  margin-top: 25px;
+  margin-top: 30px;
 }
 
 button {
   width: 100%;
-  padding: 12px;
+  padding: 12px 16px;
   border: none;
-  border-radius: 6px;
-  font-weight: 500;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: pointer;
-  transition: background-color 0.3s;
+  transition: background-color 0.3s ease;
 }
 
 .reset-btn {
@@ -242,5 +266,13 @@ button {
 
 .reset-btn:hover {
   background-color: #555;
+}
+
+.loading {
+  color: #aaa;
+  text-align: center;
+  padding: 12px;
+  font-size: 1rem;
+  font-style: italic;
 }
 </style>

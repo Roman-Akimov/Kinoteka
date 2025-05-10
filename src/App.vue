@@ -49,11 +49,11 @@ const onFilterChange = (newFilters) => {
 </template>
 
 <style scoped>
-
 .app-kino {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  font-family: 'Segoe UI', sans-serif;
 }
 
 .content {
@@ -63,17 +63,51 @@ const onFilterChange = (newFilters) => {
 }
 
 .main {
-  flex: 7;
+  flex: 7.8;
   overflow-y: auto;
   padding: 20px;
   background-color: #100f0f;
+
+  /* Стилизация скроллбара */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #1e1e1e;
+}
+
+.main::-webkit-scrollbar {
+  width: 8px;
+}
+
+.main::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.main::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
 }
 
 .filter {
-  flex: 3;
+  flex: 2.2;
   background-color: #1a1a1a;
-  color: white;
+  color: #fdfdfd;
   padding: 20px;
   overflow-y: auto;
+
+  /* Стилизация скроллбара */
+  scrollbar-width: thin;
+  scrollbar-color: #555 #1e1e1e;
+}
+
+.filter::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filter::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.filter::-webkit-scrollbar-thumb {
+  background-color: #555;
+  border-radius: 4px;
 }
 </style>
