@@ -1,8 +1,6 @@
-<!-- components/Head.vue -->
 <template>
   <header class="header">
     <div class="logo-container">
-      <!-- Замените src на путь к вашему логотипу -->
       <img src="@/assets/img_1.png" alt="Кинотека" class="logo" />
     </div>
   </header>

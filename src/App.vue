@@ -68,7 +68,6 @@ const onFilterChange = (newFilters) => {
   padding: 20px;
   background-color: #0c0b0b;
 
-  /* Стилизация скроллбара */
   scrollbar-width: thin;
   scrollbar-color: #737272 #1e1e1e;
 }
@@ -93,7 +92,6 @@ const onFilterChange = (newFilters) => {
   padding: 20px;
   overflow-y: auto;
 
-  /* Стилизация скроллбара */
   scrollbar-width: thin;
   scrollbar-color: #555 #1e1e1e;
 }
